@@ -90,6 +90,9 @@ class BaseEnsemble(object):
 		y_hat,std = self.predict(X,std=True)
 		
 		return -1/2 *np.mean( safe_ln(std) + ((y_hat - y)**2/(std+0.0001)))
+	
+	def normalised_nlpd(self,X,y):
+		pass
 		
     
     
@@ -195,6 +198,8 @@ class RegressionEnsemble(BaseEnsemble):
             try:
                 new_regressor = self.model_type(random_state=self.seed + i)#random_state=self.seed+i)
             except:
+                np.random.seed(self.seed+i)
+
                 new_regressor = self.model_type()#random_state=self.seed+i)
 
                 
@@ -266,7 +271,7 @@ class BootstrapEnsemble(RegressionEnsemble, BaseEnsemble):
         #print(X_train.size,y_train.size)
         for i in range(self.num_models):
             new_regressor = self.model_type()
-            X_new, throwaway1, y_new ,throwaway2 = train_test_split(X_train, y_train, test_size=self.keep_p, random_state=42+i,shuffle=True)
+            X_new, throwaway1, y_new ,throwaway2 = train_test_split(X_train, y_train, test_size=self.keep_p, random_state=self.seed+i,shuffle=True)
             new_regressor.fit(X_new,y_new)
             self.regressor_list.append(new_regressor)
         return 'ensemble of {} {}s is hired and at the ready'.format(self.num_models,self.model_type.__name__)
@@ -291,11 +296,14 @@ class ShuffleEnsemble(BootstrapEnsemble, BaseEnsemble):
     
 class MixedRegressionEnsemble(BaseEnsemble):
     def __init__(self,
-                models = []):
+                models = [],
+				seed = None ):
         self.models = models or [DecisionTreeRegressor(),LinearRegression()]
+        self.seed = seed or 42
         #self.model_type.__name__
         
     def fit(self,X_train,y_train):
+        np.random.seed(self.seed)
         for model in self.models:
             model.fit(X_train,y_train)
             
